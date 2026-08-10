@@ -1,0 +1,5 @@
+# One target per line: @username or numeric ID.
+# Only peers you already have a dialog with will receive anything.
+# Lines starting with # are ignored.
+@example_user
+123456789

@@ -1,0 +1,47 @@
+# Template unit file. Do NOT install this copy directly - the placeholders below
+# are filled in by "bash install.sh --service", which writes a rendered copy.
+#
+# Manual install:
+#   sudo cp systemd/userbot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now userbot
+#
+# Log in interactively once ("python userbot.py") before enabling the service.
+# systemd has no terminal, so it cannot type your login code for you.
+
+[Unit]
+Description=Telegram Userbot (Telethon)
+Documentation=file://__WORKDIR__/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+Group=__GROUP__
+WorkingDirectory=__WORKDIR__
+Environment=PYTHONUNBUFFERED=1
+ExecStart=__WORKDIR__/.venv/bin/python userbot.py
+
+Restart=always
+RestartSec=10
+# Give up if it crash-loops: 5 restarts within 5 minutes means something is broken,
+# and endless reconnects look like abuse to Telegram.
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+# Hardening. The userbot only needs its own directory and outbound network.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=__WORKDIR__
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
