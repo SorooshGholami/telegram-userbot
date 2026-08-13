@@ -1,0 +1,24 @@
+# Credentials and account state - never commit any of these.
+.env
+*.session
+*.session-journal
+userbot.db
+targets.txt
+
+# Runtime output
+notify_spool/
+userbot.log
+systemd/userbot.rendered.service
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
