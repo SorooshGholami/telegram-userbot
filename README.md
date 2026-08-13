@@ -248,7 +248,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). In short: modules are autoloaded, `pytho
 
 ## Licence
 
-MIT - see [LICENSE](LICENSE).
+see [LICENSE](LICENSE).
 
 ## Disclaimer
 
