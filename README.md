@@ -1,10 +1,8 @@
 # Telegram Userbot (Telethon)
 
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![CI](https://github.com/SorooshGholami/telegram-userbot/actions/workflows/ci.yml/badge.svg)](https://github.com/SorooshGholami/telegram-userbot/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-
-> Replace `OWNER/REPO` in the badge URLs above with your own path after forking.
 
 A modular userbot that runs on **your own Telegram account**, not a BotFather bot. You type commands prefixed with `.` in your *own* messages; the userbot edits the message in place and replaces it with the result. It also exposes a local queue so your other scripts can push notifications through the account.
 
@@ -19,14 +17,14 @@ Target platform: any Linux with Python 3.10 or newer - desktop or VPS.
 | | |
 |---|---|
 | Python | 3.10+ (`slots=True` on dataclasses) |
-| System packages | `python3`, `python3-venv`, `python3-pip` |
+| System packages | `git`, `python3`, `python3-venv`, `python3-pip` |
 | Credentials | `API_ID` and `API_HASH` from [my.telegram.org](https://my.telegram.org) → API development tools |
 | Network | Outbound access to Telegram data centres |
 
 On Debian/Ubuntu, `python3-venv` ships as a separate package and its absence is the most common setup failure:
 
 ```bash
-sudo apt install python3 python3-venv python3-pip
+sudo apt install git python3 python3-venv python3-pip
 ```
 
 ---
@@ -34,8 +32,10 @@ sudo apt install python3 python3-venv python3-pip
 ## Quick start
 
 ```bash
-unzip telegram-userbot.zip && cd telegram-userbot
-bash install.sh
+git clone https://github.com/SorooshGholami/telegram-userbot.git
+cd telegram-userbot
+bash install.sh             # venv, dependencies, and a .env copied from .env.example
+nano .env                   # fill in API_ID and API_HASH - selftest fails without them
 source .venv/bin/activate
 python selftest.py          # health check, no network calls
 python userbot.py           # first run: asks for phone number and login code
@@ -43,7 +43,7 @@ python userbot.py           # first run: asks for phone number and login code
 
 Then, in Saved Messages, send `.ping` followed by `.help`.
 
-> **`userbot.session` is equivalent to full access to your account.** Anyone holding that file logs in without a phone number or code. It is covered by `.gitignore` and excluded from the distributed archive. Keep its permissions at `600` and never copy it to a shared machine.
+> **`userbot.session` is equivalent to full access to your account.** Anyone holding that file logs in without a phone number or code. It is covered by `.gitignore`, along with `.env` and `userbot.db`. Keep its permissions at `600` and never copy it to a shared machine.
 
 ---
 
@@ -91,6 +91,12 @@ Delivery requires the userbot process to actually be running (`systemctl status 
 | Tools | `.save <name>` / `.get` / `.notes` / `.delnote` | Quick notes |
 | | `.dl` | Download media from a replied message |
 | | `.up <path>` | Upload a file from the host |
+
+`.bulk` reads `targets.txt`, which is yours and is not committed. Start from the template:
+
+```bash
+cp targets.txt.example targets.txt
+```
 
 ---
 
@@ -167,9 +173,10 @@ sudo timedatectl set-ntp true
 
 **Backups.** Two files hold all your state: `userbot.session` and `userbot.db`. Back them up together, encrypted. Restoring the session elsewhere gives that machine your account.
 
-**Updating dependencies.**
+**Updating.**
 
 ```bash
+git pull
 source .venv/bin/activate && pip install -U -r requirements.txt
 sudo systemctl restart userbot
 ```
@@ -180,9 +187,9 @@ sudo systemctl restart userbot
 
 ## Test status and known limitations
 
-**Verified statically (no Telegram connection):** autoloading of all 21 commands, zero regex pattern conflicts, storage layer read/write, AST validity of every file.
+**Verified on every push, without a Telegram connection** ([CI](.github/workflows/ci.yml), Python 3.10–3.13): every file byte-compiles, all 21 commands autoload, zero regex pattern conflicts, storage layer read/write, and the notify queue writes a spool file. `selftest.py` runs the same checks locally.
 
-**Not verified:** no real Telegram API call has been executed. Start your first real run with `.ping` and `.help` in Saved Messages — not with `.bulk`.
+**Not verified:** no real Telegram API call is executed in CI. Start your first real run with `.ping` and `.help` in Saved Messages — not with `.bulk`.
 
 | Item | Limitation |
 |---|---|
@@ -194,28 +201,39 @@ sudo systemctl restart userbot
 
 ---
 
-## Package contents
+## Project layout
 
 ```
-userbot.py                    entry point
-core.py                       command registry, module autoloader, error handling
-config.py                     .env loader
-storage.py                    SQLite (key/value + notes)
-selftest.py                   pre-flight health check
-notify_client.py              zero-dependency helper: your scripts call this to queue a message
-modules/
-  basic.py                    ping, help, id, info, me
-  sender.py                   send, sched, bulk
-  notify.py                   watches notify_spool/ and delivers queued messages
-  afk.py                      auto-reply
-  chattools.py                purge, del, pin, mute, unmute
-  tools.py                    save/get/notes, dl, up
-install.sh                    venv + dependencies (--service renders a systemd unit)
-run.sh / stop.sh              background launch without systemd
-systemd/userbot.service       unit template, filled in by install.sh --service
-.env                          credentials - filled in, do not share
-targets.txt                   target list for .bulk
-notify_spool/                 created automatically - queued and failed notifications
+userbot.py                 entry point
+core.py                    command registry, module autoloader, error handling
+config.py                  .env loader
+storage.py                 SQLite (key/value + notes)
+selftest.py                pre-flight health check
+notify_client.py           zero-dependency helper: your scripts call this to queue a message
+modules/                   every file here is autoloaded
+  basic.py                 ping, help, id, info, me
+  sender.py                send, sched, bulk
+  notify.py                watches notify_spool/ and delivers queued messages
+  afk.py                   auto-reply
+  chattools.py             purge, del, pin, mute, unmute
+  tools.py                 save/get/notes, dl, up
+install.sh                 venv + dependencies (--service renders a systemd unit)
+run.sh / stop.sh           background launch without systemd
+systemd/userbot.service    unit template, filled in by install.sh --service
+.env.example               template for the credentials file
+targets.txt.example        template for the .bulk target list
+.github/workflows/ci.yml   compile, autoload, pattern-conflict and queue checks
+```
+
+Created at runtime and kept out of git by `.gitignore`:
+
+```
+.env                       your credentials
+targets.txt                your .bulk target list
+userbot.session            login session - full account access
+userbot.db                 notes and key/value state
+notify_spool/              queued and failed notifications
+userbot.log                only when started via run.sh
 ```
 
 ## About the credentials in `.env`
@@ -223,30 +241,6 @@ notify_spool/                 created automatically - queued and failed notifica
 `API_ID` and `API_HASH` identify the **application**, not the account. Leaking them does not grant access to your Telegram account. The real risk is that if someone else spams using the same credentials, Telegram may block the `api_id` itself, which would break every client you run on it. Telegram also offers no straightforward way to revoke and reissue them.
 
 The genuinely critical file remains `userbot.session`.
-
----
-
-## Project layout
-
-```
-userbot.py              entry point
-core.py                 command registry, module autoloader, shared helpers
-config.py               .env loader
-storage.py              SQLite (key/value + notes)
-selftest.py             pre-flight health check
-notify_client.py        zero-dependency helper other scripts call to queue a message
-modules/                every file here is autoloaded
-  basic.py              ping, help, id, info, me
-  sender.py             send, sched, bulk
-  notify.py             watches notify_spool/ and delivers queued messages
-  afk.py                auto-reply
-  chattools.py          purge, del, pin, mute, unmute
-  tools.py              save/get/notes, dl, up
-install.sh              venv + dependencies (--service renders a systemd unit)
-run.sh / stop.sh        background launch without systemd
-systemd/                unit template
-.github/workflows/ci.yml  syntax, autoload, pattern-conflict and queue checks
-```
 
 ## Contributing
 
